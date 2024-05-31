@@ -1,5 +1,5 @@
-import { getSingleBook } from './bookData';
-import { getSingleAuthor, getAuthorBooks } from './authorData';
+import { getSingleBook, deleteBook } from './bookData';
+import { getSingleAuthor, getAuthorBooks, deleteSingleAuthor } from './authorData';
 
 // for merged promises
 // TODO: Get data for viewBook
@@ -13,9 +13,21 @@ const getBookDetails = (firebaseKey) => new Promise((resolve, reject) => {
   }).catch(reject);
 });
 
-const getAuthorDetails = async (firebaseKey) => {
-  const authorObject = await getSingleAuthor(firebaseKey);
-  const authorBooks = await getAuthorBooks(firebaseKey);
-  return { ...authorObject, books: authorBooks };
-};
-export { getBookDetails, getAuthorDetails };
+const getAuthorDetails = (firebaseKey) => new Promise((resolve, reject) => {
+  getSingleAuthor(firebaseKey).then((authorObject) => {
+    getAuthorBooks(authorObject.firebaseKey)
+      .then((bookArray) => resolve({ ...authorObject, books: bookArray }));
+  }).catch(reject);
+});
+
+const deleteAuthorBookRel = (firebaseKey) => new Promise((resolve, reject) => {
+  getAuthorBooks(firebaseKey).then((authorBooksArray) => {
+    const deleteBookPromises = authorBooksArray.map((book) => deleteBook(book.firebaseKey));
+
+    Promise.all(deleteBookPromises).then(() => {
+      deleteSingleAuthor(firebaseKey).then(resolve);
+    });
+  }).catch(reject);
+});
+
+export { getBookDetails, getAuthorDetails, deleteAuthorBookRel };
